@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}Log In{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto transform hover:scale-[1.01] transition-transform duration-300">
+    <h2 class="text-4xl font-bold mb-8 text-center bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent animate-gradient">Welcome Back!</h2>
+    <form method="post" class="bg-white shadow-2xl rounded-2xl px-8 pt-6 pb-8 mb-4 border border-gray-100">
+        {% csrf_token %}
+        {% for field in form %}
+            <div class="mb-6 group">
+                <label class="block text-transparent bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-sm font-bold mb-2 transition-all duration-300" for="{{ field.id_for_label }}">
+                    {{ field.label }}
+                </label>
+                <input type="{{ field.field.widget.input_type }}" 
+                       name="{{ field.name }}" 
+                       id="{{ field.id_for_label }}" 
+                       class="shadow-sm appearance-none border border-gray-200 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight 
+                              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                              transition-all duration-300 ease-in-out
+                              hover:shadow-md hover:border-blue-300
+                              group-hover:scale-[1.01]"
+                       {% if field.field.required %}required{% endif %}>
+                {% for error in field.errors %}
+                    <p class="text-red-500 text-xs italic mt-1 animate-bounce">{{ error }}</p>
+                {% endfor %}
+            </div>
+        {% endfor %}
+        <div class="flex flex-col space-y-4">
+            <button class="w-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white font-bold py-4 px-6 rounded-xl
+                         transition-all duration-300 ease-in-out
+                         hover:shadow-lg hover:scale-[1.02] hover:from-blue-600 hover:via-purple-600 hover:to-pink-600
+                         active:scale-95
+                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" 
+                    type="submit">
+                <span class="flex items-center justify-center">
+                    Log In
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                </span>
+            </button>
+            <div class="text-center transform transition-all duration-300 hover:scale-105">
+                <a class="text-sm font-semibold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent hover:from-purple-500 hover:to-pink-500 transition-all duration-300" 
+                   href="{% url 'users:signup' %}">
+                    Don't have an account? Sign up
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<style>
+    @keyframes gradient {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    .animate-gradient {
+        background-size: 200% 200%;
+        animation: gradient 3s ease infinite;
+    }
+</style>
+{% endblock %}

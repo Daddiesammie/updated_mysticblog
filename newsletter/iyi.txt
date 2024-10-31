@@ -1,0 +1,191 @@
+# Email Settings for Gmail
+# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'mail.mysticflix.com.ng'
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True
+EMAIL_USE_TLS = False
+EMAIL_HOST_USER = 'info@mysticflix.com.ng'  # Replace with your Gmail address
+EMAIL_HOST_PASSWORD = 'UV4%&g~P{VE%'  # Replace with the App Password you generated
+DEFAULT_FROM_EMAIL = 'MysticFlix <info@mysticflix.com.ng>'  # Replace with your name and Gmail address
+SITE_URL = 'http://localhost:8000'  # For development
+# SITE_URL = 'https://yourblog.com'  # For production
+
+
+
+# newsletter/__init__.py
+default_app_config = 'newsletter.apps.NewsletterConfig'
+
+
+
+# newsletter/signals.py
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.core.mail import send_mass_mail
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from django.conf import settings
+from blog.models import BlogPost
+from .models import Subscriber
+import logging
+
+logger = logging.getLogger(__name__)
+
+@receiver(post_save, sender=BlogPost)
+def send_newsletter_notification(sender, instance, created, **kwargs):
+    print(f"Signal triggered for BlogPost: {instance.title}")  # Basic print for immediate feedback
+    logger.info(f"Signal triggered for BlogPost: {instance.title}")
+    
+    # Only send emails when the post is published
+    if instance.is_published:
+        print(f"Post is published, preparing to send emails...")  # Additional feedback
+        subscribers = Subscriber.objects.all()
+        subscriber_count = subscribers.count()
+        print(f"Found {subscriber_count} subscribers")  # Check subscriber count
+        
+        if subscriber_count == 0:
+            print("No subscribers found!")
+            return
+            
+        try:
+            # Prepare mass emails
+            messages = []
+            for subscriber in subscribers:
+                print(f"Preparing email for: {subscriber.email}")  # Track email preparation
+                
+                # Render HTML email template
+                context = {
+                    'post': instance,
+                    'unsubscribe_url': f"{settings.SITE_URL}/newsletter/unsubscribe/{subscriber.email}/",
+                    'site_url': settings.SITE_URL,
+                }
+                
+                html_message = render_to_string('newsletter/email/new_post_notification.html', context)
+                plain_message = strip_tags(html_message)
+                
+                messages.append((
+                    f'New Post: {instance.title}',  # Subject
+                    plain_message,  # Plain text message
+                    settings.DEFAULT_FROM_EMAIL,  # From email
+                    [subscriber.email],  # To email
+                ))
+            
+            # Send mass emails
+            print("Attempting to send emails...")  # Track sending attempt
+            send_mass_mail(messages, fail_silently=False)
+            print("Emails sent successfully!")  # Confirm sending
+            
+        except Exception as e:
+            print(f"Error sending emails: {str(e)}")  # Print any errors
+            logger.error(f"Error sending emails: {str(e)}")
+
+
+
+# newsletter/apps.py
+from django.apps import AppConfig
+
+class NewsletterConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'newsletter'
+
+    def ready(self):
+        import newsletter.signals 
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Blog Post</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .content {
+            padding: 20px;
+            background-color: #ffffff;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>New Blog Post Published!</h1>
+    </div>
+    
+    <div class="content">
+        <h2>{{ post.title }}</h2>
+        
+        {% if post.featured_image %}
+        <img src="{{ post.featured_image.url }}" alt="{{ post.title }}" style="max-width: 100%; height: auto; margin: 20px 0;">
+        {% endif %}
+        
+        <p>{{ post.content|truncatewords_html:50|safe }}</p>
+        
+        <a href="{{ site_url }}{% url 'blog:post_detail' post.slug %}" class="button">
+            Read More
+        </a>
+    </div>
+    
+    <div class="footer">
+        <p>You received this email because you're subscribed to our newsletter.</p>
+        <p><a href="{{ unsubscribe_url }}">Unsubscribe</a></p>
+    </div>
+</body>
+</html>
+
+
+
+
+im having this error:
+
+
+[29/Oct/2024 23:56:04] "GET /admin/blog/blogpost/10/change/ HTTP/1.1" 200 30478
+[29/Oct/2024 23:56:04] "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+[29/Oct/2024 23:56:04] "GET /static/admin/css/app.min.css HTTP/1.1" 304 0
+[29/Oct/2024 23:56:04] "GET /static/admin/js/vendor/popper.min.js HTTP/1.1" 304 0
+[29/Oct/2024 23:56:04] "GET /static/js/color-mode.js HTTP/1.1" 304 0
+[29/Oct/2024 23:56:04] "GET /static/admin/fonts/bootstrap-icons/font/bootstrap-icons.min.css HTTP/1.1" 304 0
+[29/Oct/2024 23:56:04] "GET /static/admin/js/vendor/bootstrap.bundle.min.js HTTP/1.1" 304 0
+[29/Oct/2024 23:56:04] "GET /static/admin/js/app.min.js HTTP/1.1" 304 0
+[29/Oct/2024 23:56:04] "GET /static/js/force_jquery.js HTTP/1.1" 304 0
+[29/Oct/2024 23:56:04] "GET /static/js/jquery-3.3.1.min.js HTTP/1.1" 304 0
+Signal triggered for BlogPost: okay it working
+Post is published, preparing to send emails...
+Found 2 subscribers
+Preparing email for: brandsammie43@gmail.com
+Preparing email for: samuelsmar08@gmail.com
+Attempting to send emails...
+Error sending emails: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1020)
+Error sending emails: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1020)
+[29/Oct/2024 23:56:21] "POST /admin/blog/blogpost/10/change/ HTTP/1.1" 302 0
+[29/Oct/2024 23:56:21] "GET /admin/blog/blogpost/ HTTP/1.1" 200 31748
+[29/Oct/2024 23:56:21] "GET /admin/jsi18n/ HTTP/1.1" 200 3342

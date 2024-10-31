@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ user.username }}'s Profile{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white shadow rounded-lg p-6 mb-6">
+        <div class="flex items-center space-x-6">
+            {% if user.profile.avatar %}
+                <img src="{{ user.profile.avatar.url }}" alt="{{ user.username }}'s avatar" class="w-24 h-24 rounded-full object-cover">
+            {% else %}
+                <div class="w-24 h-24 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center text-white text-2xl font-bold">
+                    {{ user.username|make_list|first|upper }}
+                </div>
+            {% endif %}
+            <div>
+                <h1 class="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">{{ user.username }}</h1>
+                <p class="text-gray-600">{{ user.email }}</p>
+                {% if user.profile.location %}
+                    <p class="text-gray-600">{{ user.profile.location }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% if user.profile.bio %}
+            <p class="mt-4 text-gray-700">{{ user.profile.bio }}</p>
+        {% endif %}
+        <a href="{% url 'profiles:edit_profile' %}" class="mt-4 inline-block bg-gradient-to-r from-primary to-secondary hover:from-secondary hover:to-accent text-white font-bold py-2 px-4 rounded transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg">
+            Edit Profile
+        </a>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6">
+        <div class="bg-white shadow rounded-lg p-6">
+            <h2 class="text-xl font-bold mb-4 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Recent Comments</h2>
+            {% if comments %}
+                <ul class="space-y-4">
+                    {% for comment in comments %}
+                        <li class="border-b border-gray-200 pb-4 last:border-b-0">
+                            <p class="text-gray-600 text-sm">On {{ comment.created_at|date:"F j, Y" }}</p>
+                            <p class="text-gray-800">{{ comment.content|truncatewords:20 }}</p>
+                            <a href="{% url 'blog:post_detail' comment.post.slug %}" class="text-primary hover:text-secondary transition-colors">View Post</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-gray-600">No recent comments.</p>
+            {% endif %}
+        </div>
+
+        <div class="bg-white shadow rounded-lg p-6">
+            <h2 class="text-xl font-bold mb-4 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Recent Likes</h2>
+            {% if likes %}
+                <ul class="space-y-4">
+                    {% for like in likes %}
+                        <li class="border-b border-gray-200 pb-4 last:border-b-0">
+                            <p class="text-gray-600 text-sm">On {{ like.created_at|date:"F j, Y" }}</p>
+                            <p class="text-gray-800">{{ like.post.title }}</p>
+                            <a href="{% url 'blog:post_detail' like.post.slug %}" class="text-primary hover:text-secondary transition-colors">View Post</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-gray-600">No recent likes.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

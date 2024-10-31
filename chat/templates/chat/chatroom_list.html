@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 p-6">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <div class="mb-10 text-center">
+            <h1 class="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Chat Rooms
+            </h1>
+            <p class="text-gray-600 mt-2 text-lg">Join amazing conversations or create your own space</p>
+        </div>
+
+
+        <!-- Chatrooms Grid -->
+        <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {% for chatroom in chatrooms %}
+            <div class="group bg-white backdrop-blur-lg bg-opacity-60 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+                <a href="{% url 'chat:chatroom_detail' room_id=chatroom.id %}" class="block">
+                    <div class="p-6">
+                        <!-- Room Header -->
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h2 class="text-xl font-bold text-gray-800 group-hover:text-purple-600 transition-colors duration-300">
+                                    {{ chatroom.title }}
+                                </h2>
+                                <p class="text-gray-600 mt-2 line-clamp-2">{{ chatroom.description }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Room Info -->
+                        <div class="mt-6 flex flex-col space-y-4">
+                            <div class="flex items-center space-x-2 text-sm text-gray-500">
+                                <svg class="w-5 h-5 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"></path>
+                                </svg>
+                                <span>{{ chatroom.created_by.username }}</span>
+                                <span class="text-gray-300">•</span>
+                                <span>{{ chatroom.created_at|date:"M d, Y" }}</span>
+                            </div>
+
+                            <!-- Join Button -->
+                            <button class="w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600 text-white font-semibold py-2.5 px-4 rounded-xl transition-all duration-300 transform hover:scale-105">
+                                Join Discussion
+                            </button>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% empty %}
+            <div class="col-span-full text-center py-16">
+                <div class="bg-white bg-opacity-60 rounded-2xl p-8 max-w-md mx-auto">
+                    <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                    </svg>
+                    <p class="text-gray-500 text-lg">No chat rooms available yet.</p>
+                    <p class="text-gray-400 mt-2">Be the first to create one!</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

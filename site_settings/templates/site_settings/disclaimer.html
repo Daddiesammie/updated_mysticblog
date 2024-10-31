@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Disclaimer - {{ site_settings.site_name|default:"My Blog" }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Custom styles for CKEditor content */
+    .ck-content {
+        @apply max-w-4xl mx-auto px-4 sm:px-6 lg:px-8;
+    }
+    
+    .ck-content h1 {
+        @apply text-3xl font-bold mb-6 text-gray-900 dark:text-gray-100;
+    }
+    
+    .ck-content h2 {
+        @apply text-2xl font-semibold mb-4 text-gray-800 dark:text-gray-200 mt-8;
+    }
+    
+    .ck-content h3 {
+        @apply text-xl font-medium mb-3 text-gray-800 dark:text-gray-200 mt-6;
+    }
+    
+    .ck-content p {
+        @apply text-base leading-relaxed mb-4 text-gray-700 dark:text-gray-300;
+    }
+    
+    .ck-content ul, .ck-content ol {
+        @apply ml-6 mb-4 space-y-2;
+    }
+    
+    .ck-content li {
+        @apply text-gray-700 dark:text-gray-300;
+    }
+    
+    .ck-content a {
+        @apply text-blue-600 dark:text-blue-400 hover:underline;
+    }
+    
+    .ck-content blockquote {
+        @apply pl-4 border-l-4 border-gray-300 dark:border-gray-700 italic my-4;
+    }
+    
+    .ck-content img {
+        @apply rounded-lg shadow-lg max-w-full h-auto my-6 mx-auto;
+    }
+    
+    .ck-content table {
+        @apply min-w-full border border-gray-300 dark:border-gray-700 my-6;
+    }
+    
+    .ck-content th, .ck-content td {
+        @apply border border-gray-300 dark:border-gray-700 p-2;
+    }
+    
+    /* Animation for content sections */
+    .fade-in {
+        animation: fadeIn 0.6s ease-in;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<article class="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
+    <!-- Header Section -->
+    <header class="py-16 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-4xl mx-auto text-center">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+                Disclaimer  
+            </h1>
+            <div class="w-24 h-1 bg-gradient-to-r from-primary to-accent mx-auto rounded-full"></div>
+        </div>
+    </header>
+
+    <!-- Main Content Section -->
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+        <div class="prose prose-lg max-w-none dark:prose-invert fade-in ck-content">
+            {{ settings.disclaimer|safe }}
+        </div>
+    </div>
+</article>
+{% endblock %}

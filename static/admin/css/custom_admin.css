@@ -1,0 +1,7 @@
+/* static/admin/css/custom_admin.css */
+.full-width {
+    width: 95% !important;
+}
+.full-width .cke {
+    width: 100% !important;
+}

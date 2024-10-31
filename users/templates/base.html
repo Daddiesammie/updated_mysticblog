@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}My Blog{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-900 font-sans">
+    <header class="bg-white shadow">
+        <nav class="container mx-auto px-6 py-3">
+            <div class="flex justify-between items-center">
+                <a href="{% url 'blog:post_list' %}" class="text-xl font-bold text-gray-800">My Blog</a>
+                <div>
+                    <a href="{% url 'blog:post_list' %}" class="text-gray-800 hover:text-gray-600 mx-4">Home</a>
+                    <a href="#" class="text-gray-800 hover:text-gray-600 mx-4">About</a>
+                    {% if user.is_authenticated %}
+                        <span class="text-gray-800 mx-4">Welcome, {{ user.username }}</span>
+                        <a href="{% url 'users:logout' %}" class="text-gray-800 hover:text-gray-600 mx-4">Log Out</a>
+                    {% else %}
+                        <a href="{% url 'users:login' %}" class="text-gray-800 hover:text-gray-600 mx-4">Log In</a>
+                        <a href="{% url 'users:signup' %}" class="text-gray-800 hover:text-gray-600 mx-4">Sign Up</a>
+                    {% endif %}
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-8">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <footer class="bg-white shadow mt-8">
+        <div class="container mx-auto px-6 py-4">
+            <p class="text-center text-gray-600">&copy; 2023 My Blog. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>

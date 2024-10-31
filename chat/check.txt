@@ -1,0 +1,276 @@
+
+# chat/models.py
+from django.db import models
+from django.contrib.auth.models import User
+from django.utils import timezone
+
+class ChatRoom(models.Model):
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    is_active = models.BooleanField(default=True)
+    participants = models.ManyToManyField(User, related_name='chatrooms', blank=True)
+
+    def __str__(self):
+        return self.title
+
+    class Meta:
+        ordering = ['-created_at']
+
+class Message(models.Model):
+    chatroom = models.ForeignKey(ChatRoom, on_delete=models.CASCADE, related_name='messages')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    mentioned_users = models.ManyToManyField(User, related_name='mentions', blank=True)
+    is_edited = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f'{self.user.username}: {self.content[:50]}'
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            self.is_edited = True
+        super().save(*args, **kwargs)
+
+    class Meta:
+        ordering = ['created_at']
+
+class Notification(models.Model):
+    NOTIFICATION_TYPES = (
+        ('mention', 'Mention'),
+        ('new_message', 'New Message'),
+    )
+
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    message = models.ForeignKey(Message, on_delete=models.CASCADE)
+    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES, null=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.notification_type} notification for {self.recipient.username}'
+
+    class Meta:
+        ordering = ['-created_at']
+
+
+
+# chat/views.py
+ from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from .models import ChatRoom, Message, Notification
+from django.core.paginator import Paginator
+
+@login_required
+def chatroom_redirect(request):
+    print("Chatroom redirect view called")
+    chatroom = ChatRoom.objects.filter(is_active=True).first()
+    if not chatroom:
+        chatroom = ChatRoom.objects.create(
+            title="General Discussion",
+            description="Welcome to our chat!",
+            created_by=request.user
+        )
+    return redirect('chat:chatroom_detail', room_id=chatroom.id)
+
+@login_required
+def chatroom_list(request):
+    chatrooms = ChatRoom.objects.filter(is_active=True).order_by('-created_at')
+    return render(request, 'chat/chatroom_list.html', {'chatrooms': chatrooms})
+
+@login_required
+def chatroom_detail(request, room_id):
+    chatroom = get_object_or_404(ChatRoom, id=room_id, is_active=True)
+    messages = Message.objects.filter(chatroom=chatroom).order_by('-created_at')[:50]
+    print(f"Number of messages retrieved: {len(messages)}")
+    for message in messages:
+        print(f"Message: {message.content[:50]}...")
+    return render(request, 'chat/chatroom_detail.html', {
+        'chatroom': chatroom,
+        'messages': messages
+    })
+
+@login_required
+def delete_message(request, message_id):
+    message = get_object_or_404(Message, id=message_id, user=request.user)
+    message.delete()
+    return JsonResponse({'status': 'success'})
+
+@login_required
+def edit_message(request, message_id):
+    message = get_object_or_404(Message, id=message_id, user=request.user)
+    if request.method == 'POST':
+        content = request.POST.get('content')
+        message.content = content
+        message.save()
+        return JsonResponse({'status': 'success', 'content': content})
+    return JsonResponse({'status': 'error'}, status=400)
+
+
+# chat/admin.py
+from django.contrib import admin
+from .models import ChatRoom, Message, Notification
+
+@admin.register(ChatRoom)
+class ChatRoomAdmin(admin.ModelAdmin):
+    list_display = ('title', 'created_by', 'created_at', 'is_active')
+    list_filter = ('is_active', 'created_at')
+    search_fields = ('title', 'description')
+
+@admin.register(Message)
+class MessageAdmin(admin.ModelAdmin):
+    list_display = ('user', 'chatroom', 'content', 'created_at', 'is_edited')
+    list_filter = ('chatroom', 'created_at', 'is_edited')
+    search_fields = ('content', 'user__username')
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ('recipient', 'message', 'is_read', 'created_at')
+    list_filter = ('is_read', 'created_at')
+    search_fields = ('recipient__username',)
+
+
+
+# chat/routing.py
+from django.urls import re_path
+from . import consumers
+
+websocket_urlpatterns = [
+    re_path(r'ws/chat/(?P<room_name>\w+)/$', consumers.ChatConsumer.as_asgi()),
+]
+
+# consumers.py
+# consumers.py
+import json
+from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.db import database_sync_to_async
+from .models import ChatRoom, Message, Notifications
+
+class ChatConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.room_name = self.scope['url_route']['kwargs']['room_name']
+        self.room_group_name = f'chat_{self.room_name}'
+        self.user = self.scope["user"]
+
+        await self.channel_layer.group_add(
+            self.room_group_name,
+            self.channel_name
+        )
+        await self.accept()
+        print(f"WebSocket connected: {self.channel_name}")
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(
+            self.room_group_name,
+            self.channel_name
+        )
+        print(f"WebSocket disconnected: {self.channel_name}")
+
+    async def receive(self, text_data):
+        text_data_json = json.loads(text_data)
+        message = text_data_json['message']
+        print(f"Received message: {message}")
+
+        message_instance = await self.save_message(message)
+
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'chat_message',
+                'message': message,
+                'username': self.user.username,
+                'message_id': message_instance.id,
+                'timestamp': message_instance.created_at.isoformat(),
+            }
+        )
+
+    async def chat_message(self, event):
+        await self.send(text_data=json.dumps(event))
+        print(f"Sent message: {event['message']}")
+
+    @database_sync_to_async
+    def save_message(self, content):
+        chatroom = ChatRoom.objects.get(id=self.room_name)
+        message = Message.objects.create(
+            chatroom=chatroom,
+            user=self.user,
+            content=content
+        )
+        print(f"Saved message: {message.content}")
+        return message
+
+        # Add mentioned users and create notifications
+        for username in mentioned_users:
+            try:
+                user = User.objects.get(username=username)
+                message_instance.mentioned_users.add(user)
+                Notification.objects.create(
+                    recipient=user,
+                    message=message_instance
+                )
+            except User.DoesNotExist:
+                pass
+
+        return message_instance
+
+
+# chat/urls.py
+from django.urls import path
+from . import views
+
+app_name = 'chat'
+
+urlpatterns = [
+    path('', views.chatroom_redirect, name='chatroom_redirect'),  # New default redirect
+    path('list/', views.chatroom_list, name='chatroom_list'),
+    path('room/<int:room_id>/', views.chatroom_detail, name='chatroom_detail'),
+    path('message/<int:message_id>/delete/', views.delete_message, name='delete_message'),
+    path('message/<int:message_id>/edit/', views.edit_message, name='edit_message'),
+]
+
+project url
+from django.contrib import admin
+from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+from django.contrib.auth import views as auth_views
+from newsletter.views import newsletter_signup
+
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('', include('blog.urls')),
+    path('users/', include('users.urls')),
+    path('profiles/profile/', include('profiles.urls')),
+    path('accounts/', include('django.contrib.auth.urls')),
+    path('ckeditor/', include('ckeditor_uploader.urls')),
+    path('newsletter/signup/', newsletter_signup, name='newsletter_signup'),
+    path('site-settings/', include('site_settings.urls')),
+    path('chat/', include('chat.urls')),
+]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+
+
+# blog_project/asgi.py
+import os
+from django.core.asgi import get_asgi_application
+from channels.routing import ProtocolTypeRouter, URLRouter
+from channels.auth import AuthMiddlewareStack
+from chat.routing import websocket_urlpatterns
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'blog_project.settings')
+
+application = ProtocolTypeRouter({
+    "http": get_asgi_application(),
+    "websocket": AuthMiddlewareStack(
+        URLRouter(websocket_urlpatterns)
+    ),
+})
+
